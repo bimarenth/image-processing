@@ -18,6 +18,21 @@ exports.imageprocessing = async event => {
   const filePath = `gs://${object.bucket}/image/${object.name}`;
 
   console.log(`Getting ${file.name}.`);
+  
+  try {
+    const ext = await path.ext(file.name)
+    const req = [".jpg", ".webp", "avif"]
+  
+    if (ext.includes(req)) {
+      console.log(`File ${file.name} will be processed.`);
+      return await imageprocess(file, DESTINATION_BUCKET_NAME);
+    } else {
+      console.log(`File ${file.name} will not processed.`);
+    }
+  } catch (err) {
+    console.error(`Failed to detect ${file.name}.`, err);
+    throw err;
+  } 
 };
 
 const imageprocess = async (file, destinationBucketName) => {
