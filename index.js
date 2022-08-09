@@ -15,17 +15,20 @@ exports.imageprocessing = async event => {
   const object = event;
 
   const file = storage.bucket(object.bucket).file(object.name);
-  const filePath = `gs://${object.bucket}/image/${object.name}`;
+  const filePath = `gs://${object.bucket}/${object.name}`;
 
   console.log(`Getting ${file.name}.`);
   
   try {
-    const ext = await path.extname(file.name)
-    const req = ["jpg", "webp", "avif"]
+    const ext = path.extname(file.name);
+    console.log(ext)
+    // const reqext = {"jpg", "png", }
+    const req = (ext.includes("jpg") || ext.includes("png") || ext.includes("webp") || ext.includes("avif") || ext.includes("jpeg"));
   
-    if (ext == req) {
+    if (req) {
       console.log(`File ${file.name} will be processed.`);
       return await imageprocess(file, DESTINATION_BUCKET_NAME);
+
     } else {
       console.log(`File ${file.name} will not processed.`);
     }
@@ -38,7 +41,8 @@ exports.imageprocessing = async event => {
 const imageprocess = async (file, destinationBucketName) => {
 
   const tempLocalPath = `/tmp/${path.parse(file.name).base}`;
-  const thumbnail = `/tmp/${path.parse(file.name).name}`;
+  const newfile = `/tmp/${path.parse(file.name).name}`;
+
     
   // Download file from bucket.
   try {
@@ -50,12 +54,12 @@ const imageprocess = async (file, destinationBucketName) => {
   }
 
   await new Promise((resolve, reject) => {
-    sharp(tempLocalPath)
+    const thumb = sharp(tempLocalPath)
       .resize({
         width: 200,
         height: 200,
         })
-      .toFile(thumbnail+'_thumb'+'.jpg', (err, info) => {
+      .toFile(newfile+'_thumb'+'.jpg', (err, info) => {
         if (err) {
           console.error('Failed to process image.', err);
           reject(err);
@@ -66,7 +70,10 @@ const imageprocess = async (file, destinationBucketName) => {
       });
 
 });
-    
+  
+  const thumbimage = (newfile+'_thumb.jpg')
+  const avfimage = (newfile+'.avif')
+  const webpimage = (newfile+'.webp')
 /*   
   const webp = sharp(tempLocalPath)
       .toFormat('webp');
@@ -77,12 +84,12 @@ const imageprocess = async (file, destinationBucketName) => {
 */    
   const destinationBucket = storage.bucket(destinationBucketName);
 
-  const gcsPath = `gs://${destinationBucketName}/${file.name}`;
+  const thumbpath = `gs://${destinationBucketName}/${thumbimage}`;
   try {
-    await destinationBucket.upload(thumbnail, {destination: file.name});
-    console.log(`Uploaded processed image to: ${gcsPath}`);
+    await destinationBucket.upload(thumbimage);
+    console.log(`Uploaded processed image to: ${thumbpath}`);
   } catch (err) {
-    throw new Error(`Unable to upload processed image to ${gcsPath}: ${err}`);
+    throw new Error(`Unable to upload processed image to ${thumbpath}: ${err}`);
   }
 
     // Delete the temporary file.
