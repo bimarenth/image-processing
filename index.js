@@ -20,10 +20,10 @@ exports.imageprocessing = async event => {
   console.log(`Getting ${file.name}.`);
   
   try {
-    const ext = await path.ext(file.name)
-    const req = [".jpg", ".webp", "avif"]
+    const ext = await path.extname(file.name)
+    const req = ["jpg", "webp", "avif"]
   
-    if (ext.includes(req)) {
+    if (ext == req) {
       console.log(`File ${file.name} will be processed.`);
       return await imageprocess(file, DESTINATION_BUCKET_NAME);
     } else {
