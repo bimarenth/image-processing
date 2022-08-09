@@ -55,7 +55,7 @@ const imageprocess = async (file, destinationBucketName) => {
         width: 200,
         height: 200,
         })
-      .toFile(tempLocalPath, (err, info) => {
+      .toFile(thumbnail+'_thumb'+'.jpg', (err, info) => {
         if (err) {
           console.error('Failed to process image.', err);
           reject(err);
@@ -79,7 +79,7 @@ const imageprocess = async (file, destinationBucketName) => {
 
   const gcsPath = `gs://${destinationBucketName}/${file.name}`;
   try {
-    await destinationBucket.upload(tempLocalPath, {destination: file.name});
+    await destinationBucket.upload(thumbnail, {destination: file.name});
     console.log(`Uploaded processed image to: ${gcsPath}`);
   } catch (err) {
     throw new Error(`Unable to upload processed image to ${gcsPath}: ${err}`);
