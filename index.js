@@ -69,7 +69,7 @@ const imageprocess = async (file, destinationBucketName) => {
         }
       });
 
-});
+  });
   
   const thumbimage = (newfile+'_thumb.jpg')
   const avfimage = (newfile+'.avif')
