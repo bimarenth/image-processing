@@ -21,8 +21,6 @@ exports.imageprocessing = async event => {
   
   try {
     const ext = path.extname(file.name);
-    console.log(ext)
-    // const reqext = {"jpg", "png", }
     const req = (ext.includes("jpg") || ext.includes("png") || ext.includes("webp") || ext.includes("avif") || ext.includes("jpeg"));
   
     if (req) {
@@ -53,11 +51,11 @@ const imageprocess = async (file, destinationBucketName) => {
     throw new Error(`File download failed: ${err}`);
   }
 
-  const thumbimage = (newfile+'_thumb.jpg')
+  const thumbimage = (newfile+'-thumb.jpg')
   const avifimage = (newfile+'.avif')
   const webpimage = (newfile+'.webp')
-  const jpgimage = (newfile+'.jpg')
-
+  const jpgimage = tempLocalPath
+  
   await new Promise((resolve, reject) => {
     const thumb = sharp(tempLocalPath)
       .resize({
@@ -65,60 +63,71 @@ const imageprocess = async (file, destinationBucketName) => {
         height: 200,
         fit: sharp.fit.outside
         })
+      .jpeg({ quality: 100 })
       .toFile(thumbimage, (err, info) => {
         if (err) {
           console.error('Failed to process thumbnail image.', err);
           reject(err);
         } else {
-          console.log(`Processed thumbnail image: ${file.name}`);
+          console.log(`Processed thumbnail image: ${path.parse(thumbimage).base}`);
           resolve(info);
         }
       });
+  });
 
+  await new Promise((resolve, reject) => {
     const webp = sharp(tempLocalPath)
+      .webp({ quality: 100 })
       .toFile(webpimage, (err, info) => {
         if (err) {
           console.error('Failed to process webp image.', err);
           reject(err);
         } else {
-          console.log(`Processed webp image: ${file.name}`);
+          console.log(`Processed webp image: ${path.parse(webpimage).base}`);
           resolve(info);
         }
       });
+    });
 
-    const jpg = sharp(tempLocalPath)
-      .toFile(jpgimage, (err, info) => {
-        if (err) {
-          console.error('Failed to process jpg image.', err);
-          reject(err);
-        } else {
-          console.log(`Processed jpg image: ${file.name}`);
-          resolve(info);
-        }
-      });
-
+  await new Promise((resolve, reject) => {
     const avif = sharp(tempLocalPath)
+      .avif({ lossless: true })
       .toFile(avifimage, (err, info) => {
         if (err) {
           console.error('Failed to process avif image.', err);
           reject(err);
         } else {
-          console.log(`Processed avif image: ${file.name}`);
+          console.log(`Processed avif image: ${path.parse(avifimage).base}`);
           resolve(info);
         }
       });
-
   });
-     
-  const destinationBucket = storage.bucket(destinationBucketName);
+  
+    // const jpg = sharp(tempLocalPath)
+    //   .toFile(jpgimage, (err, info) => {
+    //     if (err) {
+    //       console.error('Failed to process jpg image.', err);
+    //       reject(err);
+    //     } else {
+    //       console.log(`Processed jpg image: ${file.name}`);
+    //       resolve(info);
+    //     }
+    //   });
 
-  const thumbpath = `gs://${destinationBucketName}/${thumbimage}`;
-  const jpgpath = `gs://${destinationBucketName}/${jpgimage}`;
-  const avifpath = `gs://${destinationBucketName}/${avifimage}`;
-  const webppath = `gs://${destinationBucketName}/${webpimage}`;
+
+  const destinationBucket = storage.bucket(destinationBucketName);
+  const destjpg = `image/${path.parse(jpgimage).base}`
+  const destwebp = `image/${path.parse(webpimage).base}`
+  const destavif = `image/${path.parse(avifimage).base}`
+  const destthumb = `image/${path.parse(thumbimage).base}`
+
+  const thumbpath = `gs://${destinationBucketName}/images/${path.parse(thumbimage).base}`;
+  const jpgpath = `gs://${destinationBucketName}/images/${path.parse(jpgimage).base}`;
+  const avifpath = `gs://${destinationBucketName}/images/${path.parse(avifimage).base}`;
+  const webppath = `gs://${destinationBucketName}/images/${path.parse(webpimage).base}`;
 
   try {
-    await destinationBucket.upload(thumbimage, {destination: thumbimage
+    await destinationBucket.upload(thumbimage, {destination: destthumb
     });
     console.log(`Uploaded thumbnail image to: ${thumbpath}`);
   } catch (err) {
@@ -126,7 +135,7 @@ const imageprocess = async (file, destinationBucketName) => {
   }
 
   try {
-    await destinationBucket.upload(jpgimage, {destination: jpgimage
+    await destinationBucket.upload(jpgimage, {destination: destjpg
     });
     console.log(`Uploaded jpg image to: ${jpgpath}`);
   } catch (err) {
@@ -134,7 +143,7 @@ const imageprocess = async (file, destinationBucketName) => {
   }
 
   try {
-    await destinationBucket.upload(avifimage, {destination: avifimage
+    await destinationBucket.upload(avifimage, {destination: destavif
     });
     console.log(`Uploaded avif image to: ${avifpath}`);
   } catch (err) {
@@ -142,7 +151,7 @@ const imageprocess = async (file, destinationBucketName) => {
   }
 
   try {
-    await destinationBucket.upload(webpimage, {destination: webpimage
+    await destinationBucket.upload(webpimage, {destination: destwebp
     });
     console.log(`Uploaded webp image to: ${webppath}`);
   } catch (err) {
@@ -150,6 +159,6 @@ const imageprocess = async (file, destinationBucketName) => {
   }
 
   
-    // Delete the temporary file.
-    return fs.unlink(tempLocalPath);
+  // Delete the temporary file.
+  return fs.unlink(tempLocalPath);
 };
